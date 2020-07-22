@@ -1,1 +1,206 @@
 
+   
+  //Sample using LiquidCrystal library
+#include <LiquidCrystal.h>
+ 
+
+// select the pins used on the LCD panel
+LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
+
+int sensorValue0 = 300;        // value read from the pot
+int sensorValue1 = 300;        // value read from the pot
+int sensorComparador1 = 0;       
+int sensorComparador2 = 0;       
+int AtoB=LOW;
+int BtoA=LOW;
+int sensorA = LOW;
+int sensorB = LOW;        //troca sensor analoico ara digital
+int counterA = 0;     //contador de passagens
+int counterB = 0;
+int AeB = LOW;
+long timeA = 0;
+long timeB = 0;
+long state = 4199900;
+long previousMillis = 0; //tempo de valor default
+long interval = 10000;   //tempo de valor default 
+long interva2 = 1000; //intervalo que sensor fica ativo sem ativar o outro
+
+ 
+void setup()
+{
+ Serial.begin(9600);
+ lcd.begin(16, 2);              // start the library
+ lcd.setCursor(0,0);
+ //lcd.print("VALORES"); // print a simple message  
+}
+
+void loop()
+{
+  if(millis() < state){
+  
+   if (millis() - previousMillis > interval)
+  {
+    
+ if(analogRead(A14) < 300 && analogRead(A15) < 300 && analogRead(A14) > 250 && analogRead(A15) > 250)
+ {
+   previousMillis = millis();
+   sensorValue0 = (analogRead(A14));          //troca valor inicial do sensor para um novo
+   sensorValue1 = (analogRead(A15));
+  }}
+
+
+
+int i;
+for (i = 0; i < 2; i++){
+sensorComparador1 = sensorComparador1 + analogRead(A14);}
+sensorComparador1 = (sensorComparador1 / 2); 
+// faz 2 verificações no sensor para sinalizar que ele foi ativo
+   if ((sensorValue0) < (sensorComparador1-330) && sensorA == LOW )  
+ { sensorA = HIGH; }  // ativa o sensor e marcao tempo de ativação
+ 
+
+
+int j;
+for (j = 0; j < 2; j++){
+sensorComparador2 = sensorComparador2 + analogRead(A15);}
+sensorComparador2 = (sensorComparador2 / 2); // average
+// faz 2 verificações no sensor para sinalizar que ele foi ativo
+  if ((sensorValue1) < (sensorComparador2-330) && sensorB == LOW )
+  { sensorB = HIGH; }// ativa o sensor e marcao tempo de ativação
+
+
+
+
+//adiciona bit do sensor acionado
+if(sensorA==HIGH && sensorB==HIGH && AeB==LOW)
+{ 
+  AeB=HIGH;}
+
+
+if(sensorB==HIGH && sensorA==LOW && BtoA==LOW )
+{
+ BtoA=HIGH;
+ sensorB=LOW;  
+ timeB= micros();
+}
+
+
+if(sensorA==HIGH && sensorB==LOW && AtoB==LOW)
+{
+ AtoB=HIGH;
+ sensorA=LOW;
+ timeA= micros();
+}
+
+
+//reseta leitura apos sensor acionado
+if(sensorB==HIGH && sensorA==LOW){sensorB=LOW;}
+if(sensorA==HIGH && sensorB==LOW){sensorA=LOW;}
+
+if(sensorA==HIGH && sensorB==HIGH )
+{ sensorA=LOW;sensorB=LOW;}
+
+
+
+if (AtoB==HIGH && BtoA==HIGH && AeB==HIGH)
+{ 
+  if (timeB > timeA)
+  {counterA++;
+  delay(300);
+  AtoB=LOW;
+  BtoA=LOW;//se ordem correta conta
+  timeA=0;
+  timeB=0;
+  AeB=LOW;
+
+  }
+  if(timeA > timeB)
+ { counterB++;
+  delay(300);
+  BtoA=LOW;
+  AtoB=LOW;
+  timeA=0;//se ordem correta conta
+  timeB=0;
+  AeB=LOW;
+
+} 
+}
+if(AtoB==HIGH && BtoA==HIGH  && AeB==LOW)
+{ BtoA=LOW;
+  AtoB=LOW;//se os dois sensores foram acionados mas não ao mesmo tempo reseta tudo
+  timeA=0;
+  timeB=0;
+  AeB=LOW;}
+
+
+
+if(analogRead(A14) < 200 && analogRead(A15) < 200 && BtoA == 1 && AtoB == 0)
+
+{ 
+if ((millis() - timeB) > interva2 )
+  {
+    AeB=0;
+    BtoA=LOW;
+    sensorB = LOW;
+    timeB = 0; //somente o sensor B foi ativo reseta apos o temporizador terminar   
+    }
+}
+
+if(analogRead(A14) < 200 && analogRead(A15) < 200 && BtoA == 0 && AtoB == 1)
+
+{
+if ((millis() - timeA) > interva2 )
+  {
+    AeB=0;
+    AtoB=LOW;
+    sensorA = LOW;
+    timeA = 0;  //somente o sensor A foi ativo reseta apos o temporizador terminar    
+  }
+}
+  
+  
+  
+lcd.setCursor(14,0);   //escrito no lcd
+lcd.print(BtoA);
+  
+lcd.setCursor(13,0);  
+lcd.print(AtoB);
+  
+  
+lcd.setCursor(15,0);  
+lcd.print(AeB);
+  
+lcd.setCursor(6,0);   
+lcd.print(counterB);
+lcd.setCursor(0,0);
+lcd.print("entra=");
+
+lcd.setCursor(4,1);   
+lcd.print(counterA);
+lcd.setCursor(0,1);
+lcd.print("sai=");
+
+
+lcd.setCursor(8,1);   
+lcd.print("media");
+
+double media = counterB - counterA;
+double x = floor(media);
+lcd.setCursor(14,1);   
+lcd.print(x);
+
+
+
+  }
+
+
+else{delay(50); state += 4199900;}
+//como estou usando microseconds e ele eh resetado a cada 70 minutos fiz isto para não contar no entre tempo
+}
+
+
+
+
+
+
+
